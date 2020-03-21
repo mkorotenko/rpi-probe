@@ -3,6 +3,8 @@ const Gpio = require('pigpio').Gpio;
 const spi = require('spi-device');
 const EventEmitter = require('events').EventEmitter;
 
+const SUB_NET = 0x48;
+
 const rfm69_base_config = [
   [0x01, 0x04], // RegOpMode: Standby Mode
   [0x02, 0x00], // RegDataModul: Packet mode, FSK, no shaping
@@ -22,7 +24,7 @@ const rfm69_base_config = [
   [0x2D, 0x03], // RegPreambleLsb
   [0x2E, 0x88], // RegSyncConfig: Enable sync word, 2 bytes sync word
   [0x2F, 0x41], // RegSyncValue1: 0x4148
-  [0x30, 0x48], // RegSyncValue2
+  [0x30, SUB_NET], // RegSyncValue2
   [0x37, 0xD0 | 0x02], // RegPacketConfig1: Variable length, CRC on, whitening
   [0x38, 0x40], // RegPayloadLength: 64 bytes max payload
   //[ REG_NODEADRS, nodeID ]
@@ -109,6 +111,7 @@ class Rfm69Connector extends EventEmitter {
     });
 
     this.nodeAddr = RFM69_ADDR;
+    this.subNet = SUB_NET;
     this.rssi = 0;
 
     this.highPower = false;
@@ -267,8 +270,10 @@ class Rfm69Connector extends EventEmitter {
     return this.writeRegister(0x01, mode * 4);
   }
 
-  async setAddress(addr) {
+  async setAddress(addr, subNet) {
     await this.writeRegister(REG_NODEADRS, addr);
+    await this.writeRegister(0x30, subNet || SUB_NET);
+    
     this.nodeAddr = addr;
   }
 

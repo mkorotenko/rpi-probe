@@ -10,9 +10,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "body-parser": "^1.19.0",
+    "express": "^4.17.1",
     "i2c-bus": "^4.0.10",
+    "morgan": "^1.9.1",
     "pi-temperature": "^2.1.0",
     "pigpio": "^1.2.3",
+    "serialize-error": "^6.0.0",
     "spi-device": "^2.0.8"
   }
 }
