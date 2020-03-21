@@ -1,5 +1,8 @@
 //Require the pigpio package, this is from https://github.com/fivdi/pigpio
 //This is a Node.js wrapper around the native pigpio C library https://github.com/joan2937/pigpio
+// Service settings: /etc/systemd/system/fan.service
+// systemctl daemon-reload
+// systemctl restart fan.service
 const Rfm69Connector = require('./drivers/rfm69');
 const piTemp = require('./drivers/cpu_temperature');
 const EventEmitter = require('events').EventEmitter;
