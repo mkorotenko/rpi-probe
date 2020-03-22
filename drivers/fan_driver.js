@@ -2,7 +2,7 @@
 const Gpio = require('pigpio').Gpio;
 const EventEmitter = require('events').EventEmitter;
 
-const FREQUENCY = 8;
+const FREQUENCY = 2;
 const MIN_DUTY = 180;
 const MIN_START_DUTY = 120;
 const MEASURE_DUTY = 400;
@@ -65,7 +65,7 @@ class FanDriver extends EventEmitter {
                     this.probe.off('interrupt', this.calcPulses);
                     const rpm = this.pulses;//Math.round((this.pulses * 1000)/MEASURE_DUTY);
                     resolve(rpm);
-                    if (rpm < 9) {
+                    if (rpm <= 4) {
                         this.stopDetected();
                     } else {
                         this.runDetected();

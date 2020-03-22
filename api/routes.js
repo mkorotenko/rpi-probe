@@ -2,7 +2,9 @@
 
 const path = require('path');
 const bodyParser = require('body-parser');
-const serializeError = require('serialize-error');
+const serializeError = require('serialize-error').serializeError;
+
+const fanApi = require('./fan-api');
 
 // Allowed extensions list can be extended depending on your own needs
 const allowedExt = [
@@ -19,24 +21,28 @@ function _handleError(error) {
 module.exports = function (app) {
 
     function addRoutesMethods(module, controllerName) {
+        let contrName = controllerName || '';
+        if (contrName) {
+            contrName = `${contrName}/`;
+        }
         for (let route in module.get)
-            app.route('/api/' + controllerName + '/' + route)
+            app.route(`/api/${contrName}${route}`)
                 .get(module.get[route]);
 
         for (let route in module.post)
-            app.route('/api/' + controllerName + '/' + route)
+            app.route(`/api/${contrName}${route}`)
                 .post(module.post[route]);
 
         for (let route in module.put)
-            app.route('/api/' + controllerName + '/' + route)
+            app.route(`/api/${contrName}${route}`)
                 .put(module.put[route]);
 
         for (let route in module.patch)
-            app.route('/api/' + controllerName + '/' + route)
+            app.route(`/api/${contrName}${route}`)
                 .patch(module.patch[route]);
 
         for (let route in module.delete)
-            app.route('/api/' + controllerName + '/' + route)
+            app.route(`/api/${contrName}${route}`)
                 .delete(module.delete[route]);
     }
 
@@ -53,7 +59,8 @@ module.exports = function (app) {
     const patch = {
     }
 
-    addRoutesMethods({ get, patch }, `acc`);
+    addRoutesMethods({ get, patch });
+    addRoutesMethods(fanApi, 'fan');
 
     app.get(`*`, (req, res) => {
         if (allowedExt.filter(ext => req.url.indexOf(ext) > 0).length > 0) {
@@ -61,7 +68,6 @@ module.exports = function (app) {
         } else {
             res.sendFile(path.resolve(__dirname, `../dist/index.html`));
         }
-        // res.send(`${__dirname} : ${path.resolve(__dirname, `../dist/index.html`)}`)
     });
 
     app.use(bodyParser.json({ limit: `50mb` }));
