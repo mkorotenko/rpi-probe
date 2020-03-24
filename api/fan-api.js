@@ -7,7 +7,7 @@ function _handleError(error) {
     this.send(serializeError(error));
 }
 
-ipc.config.id = 'hello';
+ipc.config.id = 'fan_controller';
 ipc.config.retry = 1500;
 
 ipc.connectTo(

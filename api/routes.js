@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const serializeError = require('serialize-error').serializeError;
 
 const fanApi = require('./fan-api');
+const coreApi = require('./core-api');
 
 // Allowed extensions list can be extended depending on your own needs
 const allowedExt = [
@@ -49,18 +50,16 @@ module.exports = function (app) {
     const get = {
         'test': async (req, res) => {
             try {
-                res.json({ some: 'I am Pi' });
+                res.json({ some: 'I am RPi 3 B+' });
             } catch (error) {
                 _handleError.bind(res)(error);
             }
         }
     };
 
-    const patch = {
-    }
-
-    addRoutesMethods({ get, patch });
+    addRoutesMethods({ get });
     addRoutesMethods(fanApi, 'fan');
+    addRoutesMethods(coreApi, 'core');
 
     app.get(`*`, (req, res) => {
         if (allowedExt.filter(ext => req.url.indexOf(ext) > 0).length > 0) {
