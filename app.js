@@ -4,7 +4,7 @@
 // systemctl daemon-reload
 // systemctl restart fan.service
 const Rfm69Connector = require('./drivers/rfm69');
-const piTemp = require('./drivers/cpu_temperature');
+const core = require('./drivers/core_driver');
 const EventEmitter = require('events').EventEmitter;
 const fanManager = require('./fan_manager');
 
@@ -107,7 +107,7 @@ async function probe(reg) {
 
     let temp = 0;
     try {
-      temp = await piTemp.getTemp();
+      temp = await core.getTemp();
       temp = Math.round(temp * 10);
     } catch(error) {
       console.error('Get temp error:', error);

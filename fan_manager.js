@@ -1,4 +1,4 @@
-const piTemp = require('./drivers/cpu_temperature');
+const core = require('./drivers/core_driver');
 const FanDriver = require('./drivers/fan_driver');
 const ipc = require('node-ipc');
 
@@ -96,7 +96,7 @@ module.exports = {
                     return;
                 }
 
-                const temp = await piTemp.getTemp();
+                const temp = await core.getTemp();
                 const currentSpeed = fanDriver.getSpeed();
                 const reqSpeed = getRequiredSpeed(temp);
 

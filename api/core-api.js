@@ -1,5 +1,5 @@
 const serializeError = require('serialize-error').serializeError;
-const cpu_temp = require('../drivers/cpu_temperature');
+const core = require('../drivers/core_driver');
 
 function _handleError(error) {
     this.set('Content-Type', 'application/json; charset=utf-8');
@@ -11,7 +11,7 @@ module.exports = {
     get: {
         temperature: async (req, res) => {
             try {
-                const temp = await cpu_temp.getTemp();
+                const temp = await core.getTemp();
                 res.json({ temp });
             } catch (error) {
                 _handleError.bind(res)(error);
@@ -19,7 +19,7 @@ module.exports = {
         },
         frequency: async (req, res) => {
             try {
-                const frequency = await cpu_temp.getFrequency();
+                const frequency = await core.getFrequency();
                 res.json({ frequency });
             } catch (error) {
                 _handleError.bind(res)(error);
@@ -27,7 +27,7 @@ module.exports = {
         },
         coreFrequency: async (req, res) => {
             try {
-                const coreFrequency = await cpu_temp.getCoreFrequency();
+                const coreFrequency = await core.getCoreFrequency();
                 res.json({ coreFrequency });
             } catch (error) {
                 _handleError.bind(res)(error);
@@ -35,7 +35,7 @@ module.exports = {
         },
         usage: async (req, res) => {
             try {
-                const usage = await cpu_temp.getUsage();
+                const usage = await core.getUsage();
                 res.json({ usage });
             } catch (error) {
                 _handleError.bind(res)(error);
