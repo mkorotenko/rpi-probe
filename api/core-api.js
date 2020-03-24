@@ -9,6 +9,18 @@ function _handleError(error) {
 
 module.exports = {
     get: {
+        all: async (req, res) => {
+            try {
+                const temp = await core.getTemp();
+                const frequency = await core.getFrequency();
+                res.json({
+                    temp,
+                    frequency
+                });
+            } catch (error) {
+                _handleError.bind(res)(error);
+            }
+        },
         temperature: async (req, res) => {
             try {
                 const temp = await core.getTemp();

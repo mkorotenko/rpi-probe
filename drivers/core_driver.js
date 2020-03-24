@@ -106,8 +106,7 @@ async function getCoreFrequency() {
 
 async function getUsage() {
     return new Promise((resolve) => osUtils.cpuUsage(usage => {
-        const percUsage = Math.round(usage*100)/100;
-        resolve(percUsage);
+        resolve(Math.round(usage*100)/100);
     }));
 }
 
