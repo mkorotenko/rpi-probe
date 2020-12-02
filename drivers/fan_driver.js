@@ -2,7 +2,7 @@
 const Gpio = require('pigpio').Gpio;
 const EventEmitter = require('events').EventEmitter;
 
-const FREQUENCY = 2;
+const FREQUENCY = 5;
 const MIN_DUTY = 180;
 const MIN_START_DUTY = 120;
 const MEASURE_DUTY = 400;

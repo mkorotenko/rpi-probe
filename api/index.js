@@ -1,15 +1,17 @@
-﻿// Service settings: /etc/systemd/system/nodeserver.service
-// systemctl daemon-reload
-// systemctl restart nodeserver.service
-// debug: HTTP_PORT=3001 node --inspect=192.168.1.101 probe/api/index.js
+﻿// Service settings: /etc/systemd/system/web-server.service
+// sudo systemctl daemon-reload
+// sudo systemctl restart web-server.service
+// debug: HTTP_PORT=3001 node --inspect=192.168.1.20 dev/Probe/api/index.js
 const express = require('express');
 const http = require('http');
 const routes = require('./routes.js');
+const socketIo = require('socket.io')
 
 const app = express(),
-    server = http.createServer(app);
+    server = http.createServer(app),
+    socket = socketIo(server);
 
-const port = (process.env && process.env.HTTP_PORT) || 3000;
+const port = (process.env && process.env.HTTP_PORT) || 80;
 process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 
 if (!('toJSON' in Error.prototype)) {
@@ -28,12 +30,6 @@ if (!('toJSON' in Error.prototype)) {
     });
 }
 
-routes(app);
-
-server.listen(port, () => {
-    console.log(`Server is started on port ${port}`);
-});
-
 // Catch errors
 app.on('error', (error) => {
     console.error(new Date(), 'ERROR', error);
@@ -43,4 +39,14 @@ app.on('error', (error) => {
     } catch (e) {
         _error = '<stringify error>'
     }
+});
+
+routes(app, socket);
+
+socket.on('connection', function (client) {
+    console.log('Socket: client connected');
+});
+
+server.listen(port, () => {
+    console.log(`Server is started on port ${port}`);
 });

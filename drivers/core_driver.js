@@ -2,6 +2,10 @@ const { exec } = require('child_process');
 const osUtils = require('os-utils');
 const os = require('os');
 
+// console.log(os.cpus());
+// console.log(os.totalmem());
+// console.log(os.freemem())
+
 async function getTemp() {
     return new Promise((resolve, reject) => {
         try {

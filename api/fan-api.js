@@ -7,6 +7,8 @@ function _handleError(error) {
     this.send(serializeError(error));
 }
 
+let socketAPI;
+
 ipc.config.id = 'fan_controller';
 ipc.config.retry = 1500;
 
@@ -20,6 +22,46 @@ ipc.connectTo(
         ipc.of.fanDriver.on(
             'disconnect',
             () => console.info('Disconnected from IPC server')
+        );
+        ipc.of.fanDriver.on(
+            'fan.data',
+            (data) => {
+                // console.info('fan.data', data.temp, data.speed)
+                if (!socketAPI) {
+                    return;
+                }
+                socketAPI.emit('fan.data', data);
+            }
+        );
+        ipc.of.fanDriver.on(
+            'fan.start',
+            () => {
+                // console.info('fan.start')
+                if (!socketAPI) {
+                    return;
+                }
+                socketAPI.emit('fan.start');
+            }
+        );
+        ipc.of.fanDriver.on(
+            'fan.stop',
+            (speed) => {
+                // console.info('fan.stop', speed)
+                if (!socketAPI) {
+                    return;
+                }
+                socketAPI.emit('fan.stop', speed);
+            }
+        );
+        ipc.of.fanDriver.on(
+            'fan.error',
+            (error) => {
+                // console.info('fan.error', error)
+                if (!socketAPI) {
+                    return;
+                }
+                socketAPI.emit('fan.error', error);
+            }
         );
     }
 );
@@ -50,41 +92,46 @@ async function requestPayload(req) {
 }
 
 module.exports = {
-    get: {
-        speed: async (req, res) => {
-            try {
-                const speed = await sendToIPC('getSpeed');
-                res.json({ speed });
-            } catch (error) {
-                _handleError.bind(res)(error);
-            }
-        },
-        mode: async (req, res) => {
-            try {
-                const manual = await sendToIPC('getManualMode');
-                res.json({ manual });
-            } catch (error) {
-                _handleError.bind(res)(error);
-            }
-        }
+    setSocket(socket) {
+        socketAPI = socket;
     },
-    post: {
-        speed: async (req, res) => {
-            try {
-                const payload = await requestPayload(req);
-                await sendToIPC('setSpeed', payload.speed);
-                res.json({ message: 'done' });
-            } catch (error) {
-                _handleError.bind(res)(error);
+    routes: {
+        get: {
+            speed: async (req, res) => {
+                try {
+                    const speed = await sendToIPC('getSpeed');
+                    res.json({ speed });
+                } catch (error) {
+                    _handleError.bind(res)(error);
+                }
+            },
+            mode: async (req, res) => {
+                try {
+                    const manual = await sendToIPC('getManualMode');
+                    res.json({ manual });
+                } catch (error) {
+                    _handleError.bind(res)(error);
+                }
             }
         },
-        mode: async (req, res) => {
-            try {
-                const payload = await requestPayload(req);
-                await sendToIPC('setManualMode', payload.manual);
-                res.json({ message: 'done' });
-            } catch (error) {
-                _handleError.bind(res)(error);
+        post: {
+            speed: async (req, res) => {
+                try {
+                    const payload = await requestPayload(req);
+                    await sendToIPC('setSpeed', payload.speed);
+                    res.json({ message: 'done' });
+                } catch (error) {
+                    _handleError.bind(res)(error);
+                }
+            },
+            mode: async (req, res) => {
+                try {
+                    const payload = await requestPayload(req);
+                    await sendToIPC('setManualMode', payload.manual);
+                    res.json({ message: 'done' });
+                } catch (error) {
+                    _handleError.bind(res)(error);
+                }
             }
         }
     }

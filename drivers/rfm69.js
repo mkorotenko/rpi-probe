@@ -3,13 +3,16 @@ const Gpio = require('pigpio').Gpio;
 const spi = require('spi-device');
 const EventEmitter = require('events').EventEmitter;
 
-const SUB_NET = 0x48;
+const RFM69_ADDR = 255;
+const SUB_NET = 0x30;
+
+const HAVE_DATA_EVENT = 'haveData';
 
 const rfm69_base_config = [
   [0x01, 0x04], // RegOpMode: Standby Mode
   [0x02, 0x00], // RegDataModul: Packet mode, FSK, no shaping
-  //    [0x03, 0x0C], // RegBitrateMsb: 10 kbps
-  //    [0x04, 0x80], // RegBitrateLsb
+  //[0x03, 0x0C], // RegBitrateMsb: 10 kbps
+  //[0x04, 0x80], // RegBitrateLsb
   [0x03, 0x03], // RegBitrateMsb: 38.4 kbps
   [0x04, 0x41], // RegBitrateLsb
   [0x05, 0x01], // RegFdevMsb: 20 kHz
@@ -38,8 +41,6 @@ const RFM69_MODE_SLEEP = 0,
   RFM69_MODE_FS = 2,
   RFM69_MODE_TX = 3,
   RFM69_MODE_RX = 4;
-
-const RFM69_ADDR = 255;
 
 const RFM69_SPI_Hz = 12000000;
 
@@ -145,7 +146,7 @@ class Rfm69Connector extends EventEmitter {
         this.filterTO = setTimeout(() => {
           this.filterTO = 0;
           this.fifoNE = true;
-          this.emit('isData');
+          this.emit(HAVE_DATA_EVENT);
         }, RFM69_NOISE_FILTER);
       }
     } else {

@@ -10,6 +10,7 @@ ipc.config.retry = 1500;
 const fanDriver = new FanDriver(14, 4);
 
 let manualMode = false;
+let fanRunning = false;
 
 ipc.serve(() => {
         ipc.server.on(
@@ -72,6 +73,10 @@ const SPEED_GRID = [
     },
     {
         temp: 45,
+        speed: 160
+    },
+    {
+        temp: 40,
         speed: 180
     },
     {
@@ -84,6 +89,8 @@ function getRequiredSpeed(temp) {
     const reqSpeed = SPEED_GRID.find(cs => cs.temp < temp);
     return reqSpeed.speed;
 }
+
+let restartTimerID;
 
 module.exports = {
     start() {
@@ -103,6 +110,13 @@ module.exports = {
                 if (currentSpeed !== reqSpeed) {
                     fanDriver.setSpeed(reqSpeed);
                 }
+
+                ipc.server.broadcast(
+                    'fan.data', {
+                        temp,
+                        speed: currentSpeed
+                    }
+                );
             } catch (error) {
                 console.error('Fan RPM measure error:', error);
             }
@@ -114,15 +128,50 @@ module.exports = {
 
     onStart() {
         // console.info('FAN start');
+        fanRunning = true;
+        ipc.server.broadcast(
+            'fan.start'
+        );
+        if (restartTimerID) {
+            clearInterval(restartTimerID);
+            restartTimerID = undefined;
+        }
     },
 
     async onStop() {
+        fanRunning = false;
         const currentSpeed = fanDriver.getSpeed();
-        await this.restart();
+        ipc.server.broadcast(
+            'fan.stop', {
+                currentSpeed
+            }
+        );
+        try {
+            await restarted();
+        } catch(error) {
+            ipc.server.broadcast(
+                'fan.error', {
+                    error
+                }
+            );
+        }
         fanDriver.setSpeed(currentSpeed);
     },
 
-    async restart() {
-        await fanDriver.start();
-    }
+    async restarted() {
+        return new Promise((resolve, reject) => {
+            const timeoutID = setTimeout(() => {
+                clearInterval(restartTimerID);
+                reject('Fan restart timeout');
+            }, 14000);
+            restartTimerID = setInterval(async () => {
+                await fanDriver.start();
+                if (!restartTimerID) {
+                    clearTimeout(timeoutID);
+                    resolve();
+                }
+            }, 4000);
+        })
+    },
+
 }

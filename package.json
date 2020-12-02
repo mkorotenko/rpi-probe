@@ -19,6 +19,7 @@
     "pi-temperature": "^2.1.0",
     "pigpio": "^1.2.3",
     "serialize-error": "^6.0.0",
+    "socket.io": "^2.3.0",
     "spi-device": "^2.0.8"
   }
 }

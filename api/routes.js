@@ -19,7 +19,7 @@ function _handleError(error) {
     this.send(serializeError(error));
 }
 
-module.exports = function (app) {
+module.exports = function (app, socket) {
 
     function addRoutesMethods(module, controllerName) {
         let contrName = controllerName || '';
@@ -57,9 +57,12 @@ module.exports = function (app) {
         }
     };
 
+    fanApi.setSocket(socket);
+    coreApi.setSocket(socket);
+
     addRoutesMethods({ get });
-    addRoutesMethods(fanApi, 'fan');
-    addRoutesMethods(coreApi, 'core');
+    addRoutesMethods(fanApi.routes, 'fan');
+    addRoutesMethods(coreApi.routes, 'core');
 
     app.get(`*`, (req, res) => {
         if (allowedExt.filter(ext => req.url.indexOf(ext) > 0).length > 0) {
@@ -72,9 +75,6 @@ module.exports = function (app) {
     app.use(bodyParser.json({ limit: `50mb` }));
     app.use(bodyParser.raw({ limit: `50mb` }));
     app.use(bodyParser.text({ limit: `50mb` }));
-    app.use(bodyParser.urlencoded({
-        limit: `50mb`,
-        extended: true
-    }));
+    app.use(bodyParser.urlencoded({ limit: `50mb`, extended: true }));
 
 };
