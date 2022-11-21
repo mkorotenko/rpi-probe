@@ -4,7 +4,7 @@ const spi = require('spi-device');
 const EventEmitter = require('events').EventEmitter;
 
 const RFM69_ADDR = 255;
-const SUB_NET = 0x30;
+const SUB_NET = 0x35;
 
 const HAVE_DATA_EVENT = 'haveData';
 
@@ -81,7 +81,7 @@ class Rfm69Connector extends EventEmitter {
     return false;
   }
 
-  async init(nss, rst, event) {
+  async connect(nss, rst, event) {
     this.busy = false;
     this.selected = true;
 
@@ -94,7 +94,8 @@ class Rfm69Connector extends EventEmitter {
     this.event = new Gpio(this.eventPin, {
       mode: Gpio.INPUT,
       pullUpDown: Gpio.PUD_DOWN,
-      edge: Gpio.EITHER_EDGE
+      edge: Gpio.RISING_EDGE
+      //edge: Gpio.EITHER_EDGE
     });
 
     this.fifoNE = false;
@@ -473,6 +474,5 @@ class Rfm69Connector extends EventEmitter {
     return -rssi;
   }
 }
-
 
 module.exports = Rfm69Connector;

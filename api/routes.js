@@ -6,6 +6,7 @@ const serializeError = require('serialize-error').serializeError;
 
 const fanApi = require('./fan-api');
 const coreApi = require('./core-api');
+//const rfm69Api = require('./rfm69-api');
 
 // Allowed extensions list can be extended depending on your own needs
 const allowedExt = [
@@ -59,10 +60,12 @@ module.exports = function (app, socket) {
 
     fanApi.setSocket(socket);
     coreApi.setSocket(socket);
+    //rfm69Api.setSocket(socket);
 
     addRoutesMethods({ get });
     addRoutesMethods(fanApi.routes, 'fan');
     addRoutesMethods(coreApi.routes, 'core');
+    //addRoutesMethods(rfm69Api.routes, 'rfm69');
 
     app.get(`*`, (req, res) => {
         if (allowedExt.filter(ext => req.url.indexOf(ext) > 0).length > 0) {

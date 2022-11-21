@@ -17,16 +17,15 @@ ipc.connectTo(
     () => {
         ipc.of.fanDriver.on(
             'connect',
-            () => console.info('Connected to IPC server')
+            () => console.info('Connected to FAN service')
         );
         ipc.of.fanDriver.on(
             'disconnect',
-            () => console.info('Disconnected from IPC server')
+            () => console.info('Disconnected from FAN service')
         );
         ipc.of.fanDriver.on(
             'fan.data',
             (data) => {
-                // console.info('fan.data', data.temp, data.speed)
                 if (!socketAPI) {
                     return;
                 }
@@ -36,7 +35,6 @@ ipc.connectTo(
         ipc.of.fanDriver.on(
             'fan.start',
             () => {
-                // console.info('fan.start')
                 if (!socketAPI) {
                     return;
                 }
@@ -46,7 +44,6 @@ ipc.connectTo(
         ipc.of.fanDriver.on(
             'fan.stop',
             (speed) => {
-                // console.info('fan.stop', speed)
                 if (!socketAPI) {
                     return;
                 }
@@ -56,7 +53,6 @@ ipc.connectTo(
         ipc.of.fanDriver.on(
             'fan.error',
             (error) => {
-                // console.info('fan.error', error)
                 if (!socketAPI) {
                     return;
                 }

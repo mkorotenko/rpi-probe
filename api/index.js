@@ -1,7 +1,7 @@
 ﻿// Service settings: /etc/systemd/system/web-server.service
 // sudo systemctl daemon-reload
 // sudo systemctl restart web-server.service
-// debug: HTTP_PORT=3001 node --inspect=192.168.1.20 dev/Probe/api/index.js
+// debug: HTTP_PORT=3001 node --inspect=192.168.1.200 dev/Probe/api/index.js
 const express = require('express');
 const http = require('http');
 const routes = require('./routes.js');

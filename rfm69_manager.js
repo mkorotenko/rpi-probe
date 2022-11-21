@@ -2,7 +2,7 @@
 //This is a Node.js wrapper around the native pigpio C library https://github.com/joan2937/pigpio
 // sudo node --inspect-brk=192.168.1.200 dev/Probe/rfm69_manager.js
 
-const Rfm69Connector = require('./drivers/rfm69');
+const Rfm69Connector = require('./drivers/rfm69_driver');
 const core = require('./drivers/core_driver');
 const EventEmitter = require('events').EventEmitter;
 
@@ -64,7 +64,7 @@ function packDate(d) {
 const haveData = new EventEmitter();
 
 const rfm = new Rfm69Connector(0,0); 
-rfm.init(24, 18, 25)
+rfm.connect(24, 18, 25)
 .then(() => {
   rfm.readRegister(0x01)
   .then(async (reg) => {
@@ -169,7 +169,7 @@ async function station(reg) {
     try {
       const pipe = await rfm.receive(buf);
       if (pipe) {
-        console.info(`${(new Date()).format()} ${pipe} data:`, Math.round(rfm.rssi), buf);
+        console.info(`${(new Date()).format()} ${pipe} RSSI: ${Math.round(rfm.rssi)} data: [${buf.join(', ')}]`);
         haveData.emit(HAVE_DATA_EVENT, pipe);
         if (!stationListenOnly) {
           await sendACK(pipe);
@@ -184,7 +184,6 @@ async function station(reg) {
 async function sendData(buf) {
   return new Promise(async (resolve, reject) => {
     try {
-      //const rssi = await rfm.readRSSI();
       await rfm.send(0x01, buf);
       await rfm.awaitSend();
       await rfm.setMode(4);
@@ -200,7 +199,7 @@ async function sendData(buf) {
         reject('No responce');
       }, RFM69_ATTEMPT_DELAY);
     } catch (error) {
-      console.error('Send error:', error);
+      console.error('Send data error:', error);
       reject(error);
     }
   })
@@ -208,19 +207,14 @@ async function sendData(buf) {
 
 async function sendACK(addr) {
   return new Promise(async (resolve, reject) => {
-    //setTimeout(async () => {
-      try {
-        //const rssi = await rfm.readRSSI();
-        //await rfm.send(addr, [5,0,0,0,7,0,0,0]);
-        await rfm.send(addr, [20]);
-        await rfm.awaitSend();
-        await rfm.setMode(4);
-        // console.info(`${(new Date()).format()} ACK sent`, addr);
-        resolve();
-      } catch (error) {
-        console.error('Send error:', error);
-        reject(error);
-      }
-    //}, 2);
+    try {
+      await rfm.send(addr, [20]);
+      await rfm.awaitSend();
+      await rfm.setMode(4);
+      resolve();
+    } catch (error) {
+      console.error('Send ACK error:', error);
+      reject(error);
+    }
   })
 }
