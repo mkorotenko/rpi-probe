@@ -10,6 +10,12 @@ const SUB_NET = 0x35;
 const STATION_ADDR = 1;
 const PROBE_ADDR = 0x06;
 
+const SPI_NUM = 0;
+const DEVICE_NUM = 0;
+const RESET_GPIO_PIN = 24;
+const RX_EV_GPIO_PIN = 25;
+const TX_EV_GPIO_PIN = 23;
+
 const RFM69_MAX_ATTEMPTS = 1;
 const RFM69_ATTEMPT_DELAY = 180;
 const sendPeriodMS = 10000;
@@ -63,8 +69,8 @@ function packDate(d) {
 
 const haveData = new EventEmitter();
 
-const rfm = new Rfm69Connector(0,0); 
-rfm.connect(24, 18, 25)
+const rfm = new Rfm69Connector(SPI_NUM, DEVICE_NUM); 
+rfm.connect(RESET_GPIO_PIN, RX_EV_GPIO_PIN, TX_EV_GPIO_PIN)
 .then(() => {
   rfm.readRegister(0x01)
   .then(async (reg) => {
@@ -104,7 +110,6 @@ async function probe(reg) {
   });
 
   setInterval(async () => {
-
     let buf = [ 1, 0, 0, 0, 239, 1, 230, 0 ];
 
     let temp = 0;
@@ -176,6 +181,8 @@ async function station(reg) {
         }
       }
     } catch (error) {
+      //Might be:
+      // Error on receive: Interface is busy
       console.error('Error on receive:', error);
     }
   });

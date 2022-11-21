@@ -67,42 +67,37 @@ class Rfm69Connector extends EventEmitter {
     if (this.selected) {
       return false;
     }
-    this.nss.digitalWrite(0);
     this.selected = true;
     return true;
   }
 
   chipUnselect() {
     if (this.selected) {
-      this.nss.digitalWrite(1);
       this.selected = false;
       return true;
     }
     return false;
   }
 
-  async connect(nss, rst, event) {
+  async connect(rst, RX_event, TX_event) {
     this.busy = false;
     this.selected = true;
 
-    this.nssPin = nss;
-    this.nss = new Gpio(this.nssPin, { mode: Gpio.OUTPUT });
     this.rstPin = rst;
     this.rst = new Gpio(this.rstPin, { mode: Gpio.OUTPUT });
   
-    this.eventPin = event;
+    this.eventPin = RX_event;
     this.event = new Gpio(this.eventPin, {
       mode: Gpio.INPUT,
       pullUpDown: Gpio.PUD_DOWN,
       edge: Gpio.RISING_EDGE
-      //edge: Gpio.EITHER_EDGE
     });
 
     this.fifoNE = false;
     this.filterTO = 0;
     this.event.on('interrupt', this.onFifoNE);
 
-    this.TXeventPin = 23;
+    this.TXeventPin = TX_event;
     this.TXevent = new Gpio(this.TXeventPin, {
       mode: Gpio.INPUT,
       pullUpDown: Gpio.PUD_DOWN,
@@ -124,13 +119,20 @@ class Rfm69Connector extends EventEmitter {
     await this.reset();
 
     await new Promise((resolve, reject) => {
-      this.spi = spi.open(this.bus, this.device, (err) => {
+      this.spi = spi.open(this.bus, this.device, err => {
         if (err) {
           reject(err);
           return;
         }
-        this.opened = true;
-        resolve();
+        
+        this.spi.setOptions({maxSpeedHz: RFM69_SPI_Hz}, err => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          this.opened = true;
+          resolve();
+        });
       });
     })
 
@@ -195,8 +197,7 @@ class Rfm69Connector extends EventEmitter {
       const message = [{
         sendBuffer: Buffer.from([reg, 0]),
         receiveBuffer: Buffer.alloc(2),
-        byteLength: 2,
-        speedHz: RFM69_SPI_Hz
+        byteLength: 2
       }];
 
       this.busy = true;
@@ -239,8 +240,7 @@ class Rfm69Connector extends EventEmitter {
       const message = [{
         sendBuffer: Buffer.from([reg | 0x80, value]),
         receiveBuffer: Buffer.alloc(2),
-        byteLength: 2,
-        speedHz: RFM69_SPI_Hz
+        byteLength: 2
       }];
 
       this.busy = true;
@@ -396,8 +396,7 @@ class Rfm69Connector extends EventEmitter {
       const message = [{
         sendBuffer: Buffer.from(buf),
         receiveBuffer: Buffer.alloc(receiveLength || 1),
-        byteLength: buf.length,
-        speedHz: RFM69_SPI_Hz
+        byteLength: buf.length
       }];
   
       this.spi.transfer(message, (err, message) => {
