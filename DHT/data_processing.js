@@ -167,7 +167,7 @@ module.exports = {
             const packData = getData(buffer, bufferStep);
             packData.pipe = pipe;
             packData.rssi = rssi;
-            console.log(getPackTitle(packData), packData);
+            console.log(getPackTitle(packData));
             comData.push(packData);
         }
         return comData;
