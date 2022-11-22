@@ -5,6 +5,7 @@
 const Rfm69Connector = require('./drivers/rfm69_driver');
 const core = require('./drivers/core_driver');
 const EventEmitter = require('events').EventEmitter;
+const dhtData = require('./DHT/data_processing');
 
 const SUB_NET = 0x35;
 const STATION_ADDR = 1;
@@ -170,14 +171,15 @@ async function station(reg) {
   await rfm.setMode(0x04);//receive
 
   rfm.on(HAVE_DATA_EVENT, async () => {
-    let buf = [];
+    let rxData = [];
     try {
-      const pipe = await rfm.receive(buf);
+      const pipe = await rfm.receive(rxData);
       if (pipe) {
-        console.info(`${(new Date()).format()} ${pipe} RSSI: ${Math.round(rfm.rssi)} data: [${buf.join(', ')}]`);
+        // console.info(`${(new Date()).format()} ${pipe} RSSI: ${Math.round(rfm.rssi)} data: [${buf.join(', ')}]`);
+        const packData = dhtData.processDHTpack(pipe, rfm.rssi, rxData);
         haveData.emit(HAVE_DATA_EVENT, pipe);
         if (!stationListenOnly) {
-          await sendACK(pipe);
+          await sendACK(pipe, packData[0]);
         }
       }
     } catch (error) {
@@ -212,10 +214,11 @@ async function sendData(buf) {
   })
 }
 
-async function sendACK(addr) {
+async function sendACK(addr, packData) {
   return new Promise(async (resolve, reject) => {
     try {
-      await rfm.send(addr, [20]);
+      const ackData = dhtData.getPipeAckData(addr, packData);
+      await rfm.send(addr, ackData);
       await rfm.awaitSend();
       await rfm.setMode(4);
       resolve();
