@@ -5,7 +5,7 @@
 const Rfm69Connector = require('./drivers/rfm69_driver');
 const core = require('./drivers/core_driver');
 const EventEmitter = require('events').EventEmitter;
-const dhtData = require('./DHT/data_processing');
+const dhtData = require('./Dht/data_processing');
 
 const SUB_NET = 0x35;
 const STATION_ADDR = 1;
