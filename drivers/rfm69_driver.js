@@ -42,7 +42,7 @@ const RFM69_MODE_SLEEP = 0,
   RFM69_MODE_TX = 3,
   RFM69_MODE_RX = 4;
 
-const RFM69_SPI_Hz = 12000000;
+const RFM69_SPI_Hz = 8000000;
 
 const RFM69_MAX_PAYLOAD = 64; ///< Maximum bytes payload
 
