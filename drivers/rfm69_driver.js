@@ -67,12 +67,14 @@ class Rfm69Connector extends EventEmitter {
     if (this.selected) {
       return false;
     }
+    this.nss.digitalWrite(0);
     this.selected = true;
     return true;
   }
 
   chipUnselect() {
     if (this.selected) {
+      this.nss.digitalWrite(1);
       this.selected = false;
       return true;
     }
@@ -82,6 +84,9 @@ class Rfm69Connector extends EventEmitter {
   async connect(rst, RX_event, TX_event) {
     this.busy = false;
     this.selected = true;
+
+    this.nssPin = 22;
+    this.nss = new Gpio(this.nssPin, { mode: Gpio.OUTPUT });
 
     this.rstPin = rst;
     this.rst = new Gpio(this.rstPin, { mode: Gpio.OUTPUT });

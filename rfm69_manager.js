@@ -91,8 +91,8 @@ rfm.connect(RESET_GPIO_PIN, RX_EV_GPIO_PIN, TX_EV_GPIO_PIN)
 })
 .catch(err => console.error('RFM init error:', err))
 
-async function probe(reg) {
-  console.info('RFM69 reg 0x01:', reg);
+async function probe(rfmMode) {
+  console.info('RFM69 mode:', rfmMode);
   await rfm.setPower(15);
   await rfm.setAddress(PROBE_ADDR, SUB_NET);
   await rfm.setMode(0x04);//receive
@@ -102,7 +102,6 @@ async function probe(reg) {
     try {
       const len = await rfm.receive(buf);
       if (len) {
-        // console.info('Have data:', rfm.rssi, buf);
         haveData.emit(HAVE_DATA_EVENT, len);
       }
     } catch (error) {
@@ -164,8 +163,8 @@ async function fakeACK() {
   }, sendPeriodMS);
 }
 
-async function station(reg) {
-  console.info('RFM69 reg 0x01:', reg);
+async function station(rfmMode) {
+  console.info('RFM69 mode:', rfmMode);
   await rfm.setPower(15);
   await rfm.setAddress(STATION_ADDR, SUB_NET);
   await rfm.setMode(0x04);//receive
