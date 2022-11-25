@@ -171,6 +171,14 @@ const pipeNumbers = {
     4587581: 6,
 }
 
+function setAddressPack(address) {
+    return [6, 0, 0, 0, address];
+}
+
+function reqUIDPack() {
+    return [2];
+}
+
 module.exports = {
     processDHTpack: (pipe, rssi, dataArray) => {
         let comData = [];
@@ -189,11 +197,11 @@ module.exports = {
     getPipeAckData: (pipe, packData) => {
         if (packData.pack_type == 1) {
             if (pipeNumbers[packData.UID]) {
-                return [6, 0, 0, 0, pipeNumbers[packData.UID]];
+                return setAddressPack(pipeNumbers[packData.UID]);
             }
-        } else {if (pipe == 255) {
-            return [2];
-        }}
+        } else if (pipe == 255) {
+            return reqUIDPack();
+        }
         return [0];
     }
 }

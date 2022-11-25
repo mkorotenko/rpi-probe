@@ -81,11 +81,11 @@ class Rfm69Connector extends EventEmitter {
     return false;
   }
 
-  async connect(rst, RX_event, TX_event) {
+  async connect(nss, rst, RX_event, TX_event) {
     this.busy = false;
     this.selected = true;
 
-    this.nssPin = 22;
+    this.nssPin = nss;
     this.nss = new Gpio(this.nssPin, { mode: Gpio.OUTPUT });
 
     this.rstPin = rst;
@@ -274,7 +274,7 @@ class Rfm69Connector extends EventEmitter {
   }
 
   async setMode(mode) {
-    return this.writeRegister(0x01, mode * 4);
+    return this.writeRegister(0x01, mode << 2);
   }
 
   async setAddress(addr, subNet) {

@@ -13,6 +13,7 @@ const PROBE_ADDR = 0x06;
 
 const SPI_NUM = 0;
 const DEVICE_NUM = 0;
+const NSS_GPIO_PIN = 22;
 const RESET_GPIO_PIN = 24;
 const RX_EV_GPIO_PIN = 25;
 const TX_EV_GPIO_PIN = 23;
@@ -71,7 +72,7 @@ function packDate(d) {
 const haveData = new EventEmitter();
 
 const rfm = new Rfm69Connector(SPI_NUM, DEVICE_NUM); 
-rfm.connect(RESET_GPIO_PIN, RX_EV_GPIO_PIN, TX_EV_GPIO_PIN)
+rfm.connect(NSS_GPIO_PIN, RESET_GPIO_PIN, RX_EV_GPIO_PIN, TX_EV_GPIO_PIN)
 .then(() => {
   rfm.readRegister(0x01)
   .then(async (reg) => {
@@ -168,6 +169,12 @@ async function station(rfmMode) {
   await rfm.setPower(15);
   await rfm.setAddress(STATION_ADDR, SUB_NET);
   await rfm.setMode(0x04);//receive
+
+  setInterval(async () => {
+    let mode;
+    mode = await rfm.readRegister(0x01);
+    console.info('MODE: ', mode >> 2);
+  }, 5000)
 
   rfm.on(HAVE_DATA_EVENT, async () => {
     let rxData = [];
