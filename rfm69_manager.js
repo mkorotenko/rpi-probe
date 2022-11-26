@@ -185,6 +185,7 @@ async function station(rfmMode) {
         const packData = dhtData.processDHTpack(pipe, rfm.rssi, rxData);
         haveData.emit(HAVE_DATA_EVENT, pipe);
         if (!stationListenOnly) {
+          await rfm.waitInterfaceFree();
           await sendACK(pipe, packData[0]);
         }
       }

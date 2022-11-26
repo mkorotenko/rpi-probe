@@ -164,11 +164,11 @@ function getPackTitle(packData) {
 }
 
 const pipeNumbers = {
-    2228287: 2,
-    2228289: 3,
-    2883623: 4,
-    4587579: 5,
-    4587581: 6,
+    2228287: 5,
+    2228289: 2,
+    2883623: 6,
+    4587579: 3,
+    4587581: 4,
 }
 
 function setAddressPack(address) {

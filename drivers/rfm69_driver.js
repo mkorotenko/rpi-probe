@@ -85,6 +85,7 @@ class Rfm69Connector extends EventEmitter {
     this.busy = false;
     this.selected = true;
 
+    // With hardware CS RFM69 works unstable
     this.nssPin = nss;
     this.nss = new Gpio(this.nssPin, { mode: Gpio.OUTPUT });
 
@@ -175,6 +176,28 @@ class Rfm69Connector extends EventEmitter {
         resolve();
       }, 1);
     })
+  }
+
+  async waitInterfaceFree() {
+    if (!this.busy) {
+      return Promise.resolve();
+    }
+
+    let checkCount = 4;
+    return new Promise((resolve, reject) => {
+      const intervalID = setInterval(() => {
+        if (!this.busy) {
+          clearInterval(intervalID);
+          resolve();
+          return;
+        }
+        if (!checkCount) {
+          clearInterval(intervalID);
+          reject('Interface is busy timeout');
+          return;
+        }
+      }, 300);
+    });
   }
 
   async readRegister(reg) {
@@ -364,7 +387,9 @@ class Rfm69Connector extends EventEmitter {
       ]
       await this.transfer(header.concat(transfBuf), header.length + transfBuf.length);
     } catch (error) {
+      this.chipUnselect();
       this.busy = false;
+      await this.setMode(RFM69_MODE_TX);
       throw error;
     }
 
