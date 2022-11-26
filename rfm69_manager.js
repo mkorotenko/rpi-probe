@@ -177,21 +177,18 @@ async function station(rfmMode) {
   }, 5000)
 
   rfm.on(HAVE_DATA_EVENT, async () => {
-    let rxData = [];
     try {
+      let rxData = [];
       const pipe = await rfm.receive(rxData);
       if (pipe) {
-        // console.info(`${(new Date()).format()} ${pipe} RSSI: ${Math.round(rfm.rssi)} data: [${buf.join(', ')}]`);
-        const packData = dhtData.processDHTpack(pipe, rfm.rssi, rxData);
         haveData.emit(HAVE_DATA_EVENT, pipe);
+        const packData = dhtData.processDHTpack(pipe, rfm.rssi, rxData);
         if (!stationListenOnly) {
           await rfm.waitInterfaceFree();
           await sendACK(pipe, packData[0]);
         }
       }
     } catch (error) {
-      //Might be:
-      // Error on receive: Interface is busy
       console.error('Error on receive:', error);
     }
   });

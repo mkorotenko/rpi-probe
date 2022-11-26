@@ -164,15 +164,17 @@ function getPackTitle(packData) {
 }
 
 const pipeNumbers = {
-    2228287: 5,
-    2228289: 2,
-    2883623: 6,
-    4587579: 3,
-    4587581: 4,
+    2228287: { addr: 5, subnet: 0x35 },
+    2228289: { addr: 2, subnet: 0x35 },
+    2883623: { addr: 6, subnet: 0x35 },
+    4587579: { addr: 3, subnet: 0x35 },
+    4587581: { addr: 4, subnet: 0x35 },
 }
 
-function setAddressPack(address) {
-    return [6, 0, 0, 0, address];
+function setAddressPack(address, subnet, core_UID) {
+    // task(8), last(8), addr(16), data(32)
+    let uid_sig = (core_UID & 0xffff) + ((core_UID >> 16) & 0xffff);
+    return [6, 0, uid_sig & 0xff, (uid_sig >> 8) & 0xff, address, subnet, 0, 0];
 }
 
 function reqUIDPack() {
@@ -196,8 +198,9 @@ module.exports = {
     },
     getPipeAckData: (pipe, packData) => {
         if (packData.pack_type == 1) {
-            if (pipeNumbers[packData.UID]) {
-                return setAddressPack(pipeNumbers[packData.UID]);
+            const pipeNum = pipeNumbers[packData.UID];
+            if (pipeNum) {
+                return setAddressPack(pipeNum.addr, pipeNum.subnet, packData.UID);
             }
         } else if (pipe == 255) {
             return reqUIDPack();
