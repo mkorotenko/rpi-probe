@@ -42,7 +42,7 @@ const RFM69_MODE_SLEEP = 0,
   RFM69_MODE_TX = 3,
   RFM69_MODE_RX = 4;
 
-const RFM69_SPI_Hz = 8000000;
+const RFM69_SPI_Hz = 12000000;
 
 const RFM69_MAX_PAYLOAD = 64; ///< Maximum bytes payload
 
@@ -67,27 +67,33 @@ class Rfm69Connector extends EventEmitter {
     if (this.selected) {
       return false;
     }
-    this.nss.digitalWrite(0);
+    if (this.nss) {
+      this.nss.digitalWrite(0);
+    }
     this.selected = true;
     return true;
   }
 
   chipUnselect() {
     if (this.selected) {
-      this.nss.digitalWrite(1);
+      if (this.nss) {
+        this.nss.digitalWrite(1);
+      }
       this.selected = false;
       return true;
     }
     return false;
   }
 
-  async connect(nss, rst, RX_event, TX_event) {
+  async connect(rst, RX_event, TX_event, nss) {
     this.busy = false;
     this.selected = true;
 
     // With hardware CS RFM69 works unstable
-    this.nssPin = nss;
-    this.nss = new Gpio(this.nssPin, { mode: Gpio.OUTPUT });
+    if (nss) {
+      this.nssPin = nss;
+      this.nss = new Gpio(this.nssPin, { mode: Gpio.OUTPUT });
+    }
 
     this.rstPin = rst;
     this.rst = new Gpio(this.rstPin, { mode: Gpio.OUTPUT });

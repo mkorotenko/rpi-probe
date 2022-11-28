@@ -72,7 +72,7 @@ function packDate(d) {
 const haveData = new EventEmitter();
 
 const rfm = new Rfm69Connector(SPI_NUM, DEVICE_NUM); 
-rfm.connect(NSS_GPIO_PIN, RESET_GPIO_PIN, RX_EV_GPIO_PIN, TX_EV_GPIO_PIN)
+rfm.connect(RESET_GPIO_PIN, RX_EV_GPIO_PIN, TX_EV_GPIO_PIN)
 .then(() => {
   rfm.readRegister(0x01)
   .then(async (reg) => {
