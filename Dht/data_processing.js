@@ -1,5 +1,7 @@
 const Buffer = require('buffer').Buffer;
 
+const EXT1_V_k = 12.44/202;
+
 function decodeDate(zipDate) {
     let s, m, h, dd, mm, yy;
     s = zipDate & 63;
@@ -109,7 +111,8 @@ const CustomStruct = {
     packSize: UINT_8,
     dataTypes: UINT_16,
     bat_v: dataProcess(UINT_16, undefined, 10),
-    core_t: UINT_16
+    core_t: UINT_16,
+    ext1_v: UINT_16,
 }
 
 const TYPES_MAP = {
@@ -157,7 +160,7 @@ function getPackTitle(packData) {
             result = `${result} | UID: ${packData.UID}`;
             break;
         case 4:
-            result = `${result} | SIZE: ${packData.packSize} | TYPES: ${packData.dataTypes} | BAT: ${packData.bat_v.toFixed(1)} | CORE: ${pipePad(packData.core_t, 2)}`;
+            result = `${result} | SIZE: ${packData.packSize} | TYPES: ${packData.dataTypes} | BAT: ${packData.bat_v.toFixed(1)} | CORE: ${pipePad(packData.core_t, 2)} | EXT1: ${(packData.ext1_v*EXT1_V_k).toFixed(2)}`;
             break;
     }
     return `${result} %s`;
