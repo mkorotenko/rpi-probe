@@ -8,7 +8,7 @@ const EventEmitter = require('events').EventEmitter;
 const dhtData = require('./Dht/data_processing');
 
 const SUB_NET = 0x35;
-const STATION_ADDR = 1;
+const STATION_ADDR = 0x00;
 const PROBE_ADDR = 0x06;
 
 const SPI_NUM = 0;

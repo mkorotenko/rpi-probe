@@ -1,6 +1,6 @@
 const Buffer = require('buffer').Buffer;
 
-const EXT1_V_k = 12.44/202;
+const EXT1_V_k = 12.44/2020;
 
 function decodeDate(zipDate) {
     let s, m, h, dd, mm, yy;
@@ -107,19 +107,25 @@ const UIDStruct = {
 const StateStruct = {
     state: probeState,
 }
-const CustomStruct = {
+const Ext1Struct = {
     packSize: UINT_8,
     dataTypes: UINT_16,
     bat_v: dataProcess(UINT_16, undefined, 10),
     core_t: UINT_16,
     ext1_v: UINT_16,
 }
+const RunStateStruct = {
+    packSize: UINT_8,
+    dataTypes: UINT_16,
+    state: UINT_32
+}
 
 const TYPES_MAP = {
     1: UIDStruct,
     2: DHTStruct,
     3: UIDStruct,
-    4: CustomStruct,
+    4: Ext1Struct,
+    5: RunStateStruct,
     10: StateStruct
 }
 
@@ -162,16 +168,27 @@ function getPackTitle(packData) {
         case 4:
             result = `${result} | SIZE: ${packData.packSize} | TYPES: ${packData.dataTypes} | BAT: ${packData.bat_v.toFixed(1)} | CORE: ${pipePad(packData.core_t, 2)} | EXT1: ${(packData.ext1_v*EXT1_V_k).toFixed(2)}`;
             break;
+        case 5:
+            result = `${result} | SIZE: ${packData.packSize} | TYPES: ${packData.dataTypes} | STATE: ${packData.state}`;
+            break;
     }
     return `${result} %s`;
 }
 
 const pipeNumbers = {
-    2228287: { addr: 5, subnet: 0x35 },
-    2228289: { addr: 2, subnet: 0x35 },
-    2883623: { addr: 6, subnet: 0x35 },
-    4587579: { addr: 3, subnet: 0x35 },
-    4587581: { addr: 4, subnet: 0x35 },
+    2228287: { addr: 4, subnet: 0x35 },
+    2228289: { addr: 1, subnet: 0x35 },
+    2883623: { addr: 5, subnet: 0x35 },
+    4587579: { addr: 2, subnet: 0x35 },
+    4587581: { addr: 3, subnet: 0x35 },
+}
+
+const pipeInitTasks = {
+    1: [],
+    2: [],
+    3: [],
+    4: [],
+    5: []
 }
 
 function setAddressPack(address, subnet, core_UID) {
