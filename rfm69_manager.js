@@ -172,6 +172,10 @@ async function station(rfmMode) {
 
   setInterval(async () => {
     let mode;
+    // Some kind of reset mode: set 1 and then to 4
+    await rfm.writeRegister(0x01, 0x04);
+    await rfm.writeRegister(0x01, 0x10);
+
     mode = await rfm.readRegister(0x01);
     console.info('MODE: ', mode >> 2);
   }, 5000)

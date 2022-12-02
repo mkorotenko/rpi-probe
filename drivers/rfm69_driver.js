@@ -52,7 +52,6 @@ const RFM69_NOISE_FILTER = 50; // ms
 
 const CSMA_RSSI_THRESHOLD = -85;
 
-
 class Rfm69Connector extends EventEmitter {
 
   constructor(bus, device) {
