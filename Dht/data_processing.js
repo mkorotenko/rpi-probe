@@ -104,6 +104,9 @@ const DHTStruct = {
 const UIDStruct = {
     UID: UINT_32,
 }
+const ACKStruct = {
+    taskNum: UINT_8
+}
 const StateStruct = {
     state: probeState,
 }
@@ -126,7 +129,8 @@ const TYPES_MAP = {
     3: UIDStruct,
     4: Ext1Struct,
     5: RunStateStruct,
-    10: StateStruct
+    10: StateStruct,
+    20: ACKStruct
 }
 
 function getBody(buffer, result, dataType, indexContainer) {
@@ -174,6 +178,9 @@ function getPackTitle(packData) {
         case 5:
             result = `${result} | SIZE: ${packData.packSize} | TYPES: ${packData.dataTypes} | STATE: ${packData.state}`;
             break;
+        case 20:
+            result = `${result} | TASK: ${packData.taskNum}`;
+            break;
     }
     return `${result} %s`;
 }
@@ -201,7 +208,8 @@ function setAddressPack(address, subnet, core_UID) {
 }
 
 function reqUIDPack() {
-    return [2];
+    // return [2, 0, 0, 0, 0, 0, 0, 0];
+    return [2, 0];
 }
 
 module.exports = {
@@ -209,6 +217,9 @@ module.exports = {
         let comData = [];
         const buffer = Buffer.from(dataArray);
         const bufferStep = { index: 0 };
+// if (pipe == 5 && (buffer[0] == 14 || buffer[0] == 20)) {
+//     console.info("Pipe data: ", buffer);
+// }
         while (bufferStep.index < buffer.length) {
             const packData = getData(buffer, bufferStep);
             packData.pipe = pipe;
@@ -224,9 +235,13 @@ module.exports = {
             if (pipeNum) {
                 return setAddressPack(pipeNum.addr, pipeNum.subnet, packData.UID);
             }
+        // If pipe sent 20 - ACK
+        // } else if (packData.pack_type == 20 || packData.pack_type == 21) {
+        //     return null;
         } else if (pipe == 255) {
             return reqUIDPack();
         }
-        return [0];
+        // Simple ACK
+        return [20, 0];
     }
 }

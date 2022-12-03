@@ -184,7 +184,7 @@ async function station(rfmMode) {
   setInterval(async () => {
     await rfm.waitInterfaceFree();
     console.info('Sending to 5 pipe...');
-    await rfm.send(0x05, [20]);
+    await rfm.send(0x05, [14, 0]);
     await rfm.awaitSend();
     await rfm.setMode(4);
   }, 8000)
@@ -198,7 +198,6 @@ async function station(rfmMode) {
         haveData.emit(HAVE_DATA_EVENT, pipe);
         const packData = dhtData.processDHTpack(pipe, rfm.rssi, rxData);
         if (!stationListenOnly) {
-          await rfm.waitInterfaceFree();
           await sendACK(pipe, packData[0]);
         }
       }
@@ -237,6 +236,10 @@ async function sendACK(addr, packData) {
   return new Promise(async (resolve, reject) => {
     try {
       const ackData = dhtData.getPipeAckData(addr, packData);
+      if (ackData == null) {
+        resolve();
+        return;
+      }
       await rfm.waitInterfaceFree();
       await rfm.send(addr, ackData);
       await rfm.awaitSend();
