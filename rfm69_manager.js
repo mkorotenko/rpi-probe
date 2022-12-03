@@ -173,16 +173,26 @@ async function station(rfmMode) {
   setInterval(async () => {
     let mode;
     // Some kind of reset mode: set 1 and then to 4
+    await rfm.waitInterfaceFree();
     await rfm.writeRegister(0x01, 0x04);
     await rfm.writeRegister(0x01, 0x10);
 
     mode = await rfm.readRegister(0x01);
     console.info('MODE: ', mode >> 2);
-  }, 5000)
+  }, 5000);
+
+  setInterval(async () => {
+    await rfm.waitInterfaceFree();
+    console.info('Sending to 5 pipe...');
+    await rfm.send(0x05, [20]);
+    await rfm.awaitSend();
+    await rfm.setMode(4);
+  }, 8000)
 
   rfm.on(HAVE_DATA_EVENT, async () => {
     try {
       let rxData = [];
+      await rfm.waitInterfaceFree();
       const pipe = await rfm.receive(rxData);
       if (pipe) {
         haveData.emit(HAVE_DATA_EVENT, pipe);
@@ -201,6 +211,7 @@ async function station(rfmMode) {
 async function sendData(buf) {
   return new Promise(async (resolve, reject) => {
     try {
+      await rfm.waitInterfaceFree();
       await rfm.send(0x01, buf);
       await rfm.awaitSend();
       await rfm.setMode(4);
@@ -226,6 +237,7 @@ async function sendACK(addr, packData) {
   return new Promise(async (resolve, reject) => {
     try {
       const ackData = dhtData.getPipeAckData(addr, packData);
+      await rfm.waitInterfaceFree();
       await rfm.send(addr, ackData);
       await rfm.awaitSend();
       await rfm.setMode(4);

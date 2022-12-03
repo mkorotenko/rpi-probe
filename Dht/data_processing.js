@@ -141,7 +141,10 @@ function getData(buffer, indexContainer) {
     const data = {};
     const startIndex = indexContainer.index;
     getBody(buffer, data, HEADStruct, indexContainer);
-    getBody(buffer, data, TYPES_MAP[data.pack_type], indexContainer);
+    const packHandler = TYPES_MAP[data.pack_type];
+    if (packHandler) {
+        getBody(buffer, data, packHandler, indexContainer);
+    }
     if (data.packSize) {
         indexContainer.index = startIndex + data.packSize + 3;
     }
@@ -205,7 +208,6 @@ module.exports = {
     processDHTpack: (pipe, rssi, dataArray) => {
         let comData = [];
         const buffer = Buffer.from(dataArray);
-
         const bufferStep = { index: 0 };
         while (bufferStep.index < buffer.length) {
             const packData = getData(buffer, bufferStep);
