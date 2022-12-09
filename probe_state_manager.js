@@ -5,6 +5,7 @@
 const Rfm69Connector = require('./drivers/rfm69_driver');
 const EventEmitter = require('events').EventEmitter;
 const dhtData = require('./Dht/data_processing');
+const PipeState = require('./Dht/pipe_state');
 Date.prototype.format = function() {
   var mm = this.getMonth() + 1;
   var dd = this.getDate();
@@ -32,6 +33,7 @@ Date.prototype.format = function() {
 
 const SUB_NET = 0x35;
 const STATION_ADDR = 0x00;
+const NEW_PIPE_ADDR = 0xff;
 
 const SPI_NUM = 0;
 const DEVICE_NUM = 0;
@@ -45,11 +47,11 @@ const STATE_CHECK_S = 5;
 const RFM_DATA_EVENT = 'haveData';
 
 const pipeNumbers = {
-  2228287: { addr: 4, subnet: 0x35 },
-  2228289: { addr: 1, subnet: 0x35 },
-  2883623: { addr: 5, subnet: 0x35 },
-  4587579: { addr: 2, subnet: 0x35 },
-  4587581: { addr: 3, subnet: 0x35 },
+  2228287: { addr: 4, subnet: SUB_NET },
+  2228289: { addr: 1, subnet: SUB_NET },
+  2883623: { addr: 5, subnet: SUB_NET },
+  4587579: { addr: 2, subnet: SUB_NET },
+  4587581: { addr: 3, subnet: SUB_NET },
 }
 
 const pipeInitTasks = {
@@ -62,13 +64,37 @@ const pipeInitTasks = {
 
 const pipesStat = {};
 
-function updatePipeState(pipeNum, packs) {
-  const pipeState = pipesStat[pipeNum] || {};
+
+
+function pipeResetState(pipeUID) {
+  let pipeNum = pipeNumbers[pipeUID];
+  if (!pipeNum) {
+    pipeNum = Math.max(...Object.keys(pipeNumbers).map(pA => pA.addr)) || 0;
+    pipeNum++;
+    pipeNumbers[pipeUID] = { addr: pipeNum, subnet: SUB_NET };
+  }
+
+  pipesStat[pipeNum] = new PipeState(pipeNum, UID);
 }
 
-setInterval(async() => {
+function updatePipeState(pipeNum, packs) {
+  const curPack = packs[0];
+  if (pipeNum == NEW_PIPE_ADDR) {
+    pipeResetState(packs[0].UID);
+    return;
+  }
+  const pipeState = pipesStat[pipeNum];
+  // Pipe knows it's number but station doesn't so it was restarted
+  if (!pipeState) {
+    curPack.ackPack = dhtData.reqUIDPack();
+    return;
+  }
+  pipeState.update(curPack);
+}
 
-}, STATE_CHECK_S * 1000);
+// setInterval(async() => {
+
+// }, STATE_CHECK_S * 1000);
 
 const rfm = new Rfm69Connector(SPI_NUM, DEVICE_NUM); 
 rfm.connect(RESET_GPIO_PIN, RX_EV_GPIO_PIN, TX_EV_GPIO_PIN)
@@ -143,7 +169,9 @@ async function sendACK(addr, packData) {
 }
 
 function getPipeAckData(pipe, packData) {
-  if (packData.pack_type == 1) {
+  if (packData.ackPack) {
+    return packData.ackPack;
+  } else if (packData.pack_type == 1) {
       const pipeNum = pipeNumbers[packData.UID];
       if (pipeNum) {
           return dhtData.setAddressPack(pipeNum.addr, pipeNum.subnet, packData.UID);
