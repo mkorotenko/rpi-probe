@@ -173,7 +173,7 @@ function getPackTitle(packData) {
             result = `${result} | UID: ${packData.UID}`;
             break;
         case 4:
-            result = `${result} | SIZE: ${packData.packSize} | TYPES: ${packData.dataTypes} | BAT: ${packData.bat_v.toFixed(1)} | CORE: ${pipePad(packData.core_t, 2)} | EXT1: ${(packData.ext1_v*EXT1_V_k).toFixed(2)}`;
+            result = `${result} | BAT: ${packData.bat_v.toFixed(1)} | SIZE: ${packData.packSize} | TYPES: ${packData.dataTypes} | CORE: ${pipePad(packData.core_t, 2)} | EXT1: ${(packData.ext1_v*EXT1_V_k).toFixed(2)}`;
             break;
         case 5:
             result = `${result} | SIZE: ${packData.packSize} | TYPES: ${packData.dataTypes} | STATE: ${packData.state}`;
@@ -194,6 +194,10 @@ function setAddressPack(address, subnet, core_UID) {
 function reqUIDPack() {
     // return [2, 0, 0, 0, 0, 0, 0, 0];
     return [2, 0];
+}
+
+function reqSettingsPack() {
+    return [13, 0];
 }
 
 function ackPack() {
