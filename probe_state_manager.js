@@ -60,24 +60,69 @@ function resetPipeState(pipeUID) {
   if (!addr) {
     pipeNum = Math.max(...Object.keys(pipeNumbers).map(pA => pA.pipeNum)) || 0;
     pipeNum++;
-    pipeNumbers[pipeUID] = { pipeNum, subnet: SUB_NET };
+    addr = pipeNumbers[pipeUID] = { pipeNum, subnet: SUB_NET, beamMode: true };
   }
 
-  pipesStat[addr.pipeNum] = new PipeState(addr, pipeUID);
+  pipesStat[addr.pipeNum] = new PipeState(addr, pipeUID, { beamMode: addr.beamMode });
+  return addr;
 }
 
 function updatePipeState(pipeNum, packs) {
   const curPack = packs[0];
-  if (pipeNum == NEW_PIPE_ADDR || curPack.pack_type == 1) {
-    resetPipeState(curPack.UID);
+  if (pipeNum == NEW_PIPE_ADDR) {
+    const pipeAddr = resetPipeState(curPack.UID);
+    if (pipeAddr) {
+      return dhtData.setAddressPack(pipeAddr.pipeNum, pipeAddr.subnet, curPack.UID);
+    }
     return;
   }
   const pipeState = pipesStat[pipeNum];
   // Pipe knows it's number but station doesn't so it was restarted
   if (!pipeState) {
-    return dhtData.reqUIDPack();
+    if (curPack.pack_type == 1) {
+      const pipeAddr = resetPipeState(curPack.UID);
+      if (pipeAddr) {
+        return dhtData.setAddressPack(pipeAddr.pipeNum, pipeAddr.subnet, curPack.UID);
+      }
+      return;
+    } else {
+      return dhtData.reqUIDPack();
+    }
   }
   pipeState.update(curPack);
+  const task = pipeState.getTask();
+  if (task) {
+    switch (task) {
+      case 'checkMode':
+        return dhtData.reqSettingsPack();
+    }
+  }
+}
+
+async function dataHandler() {
+  try
+  {
+    let rxData = [];
+    await rfm.waitInterfaceFree();
+    const pipeNum = await rfm.receive(rxData);
+    if (pipeNum)
+    {
+      const packData = dhtData.processDHTpack(pipeNum, rfm.rssi, rxData);
+      let ackPack = updatePipeState(pipeNum, packData);
+      if (!ackPack)
+      {
+        ackPack = dhtData.ackPack();
+      }
+      if (ackPack == null)
+      {
+        return;
+      }
+      await sendACK(pipeNum, ackPack);
+    }
+  } catch (error)
+  {
+    console.error('Error on receive:', error);
+  }
 }
 
 async function station() {
@@ -99,26 +144,7 @@ async function station() {
     console.info('MODE: ', mode >> 2);
   }, 5000);
 
-  rfm.on(RFM_DATA_EVENT, async () => {
-    try {
-      let rxData = [];
-      await rfm.waitInterfaceFree();
-      const pipeNum = await rfm.receive(rxData);
-      if (pipeNum) {
-        const packData = dhtData.processDHTpack(pipeNum, rfm.rssi, rxData);
-        let ackPack = updatePipeState(pipeNum, packData);
-        if (!ackPack) {
-          ackPack = getPipeAckData(pipeNum, packData);
-        }
-        if (ackPack == null) {
-          return;
-        }
-        await sendACK(pipeNum, ackPack);
-      }
-    } catch (error) {
-      console.error('Error on receive:', error);
-    }
-  });
+  rfm.on(RFM_DATA_EVENT, dataHandler);
 }
 
 async function sendACK(pipeNum, ackData) {
@@ -134,22 +160,6 @@ async function sendACK(pipeNum, ackData) {
       reject(error);
     }
   })
-}
-
-function getPipeAckData(pipe, packData) {
-  if (packData.pack_type == 1) {
-      const pipeAddr = pipeNumbers[packData.UID];
-      if (pipeAddr) {
-          return dhtData.setAddressPack(pipeAddr.pipeNum, pipeAddr.subnet, packData.UID);
-      }
-  // If pipe sent 20 - ACK
-  // } else if (packData.pack_type == 20 || packData.pack_type == 21) {
-  //     return null;
-  } else if (pipe == 255) {
-      return dhtData.reqUIDPack();
-  }
-  // Simple ACK
-  return dhtData.ackPack();
 }
 
 try {

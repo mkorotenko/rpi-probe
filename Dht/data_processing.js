@@ -223,6 +223,7 @@ module.exports = {
     },
     setAddressPack,
     reqUIDPack,
+	reqSettingsPack,
     ackPack,
     // Obsolete
     getPipeAckData: (pipe, packData) => {
