@@ -41,6 +41,8 @@ const RESET_GPIO_PIN = 24;
 const RX_EV_GPIO_PIN = 25;
 const TX_EV_GPIO_PIN = 23;
 
+const rfm = new Rfm69Connector(SPI_NUM, DEVICE_NUM);
+
 const RFM_DATA_EVENT = 'haveData';
 
 const pipeNumbers = {
@@ -78,20 +80,9 @@ function updatePipeState(pipeNum, packs) {
   pipeState.update(curPack);
 }
 
-// setInterval(async() => {
-
-// }, STATE_CHECK_S * 1000);
-
-const rfm = new Rfm69Connector(SPI_NUM, DEVICE_NUM); 
-rfm.connect(RESET_GPIO_PIN, RX_EV_GPIO_PIN, TX_EV_GPIO_PIN)
-  .then(() => {
-    rfm.readRegister(0x01)
-    .then(async reg => (await station(reg)))
-    .catch(err => console.error('RFM read error:', err))
-  })
-  .catch(err => console.error('RFM init error:', err));
-
-async function station(rfmMode) {
+async function station() {
+  await rfm.connect(RESET_GPIO_PIN, RX_EV_GPIO_PIN, TX_EV_GPIO_PIN);
+  const rfmMode = await rfm.readRegister(0x01);
   console.info('RFM69 mode:', rfmMode);
   await rfm.setPower(15);
   await rfm.setAddress(STATION_ADDR, SUB_NET);
@@ -108,29 +99,21 @@ async function station(rfmMode) {
     console.info('MODE: ', mode >> 2);
   }, 5000);
 
-  // setInterval(async () => {
-  //   await rfm.waitInterfaceFree();
-  //   console.info('Sending to 5 pipe...');
-  //   await rfm.send(0x05, [14, 0]);
-  //   await rfm.awaitSend();
-  //   await rfm.setMode(4);
-  // }, 8000)
-
   rfm.on(RFM_DATA_EVENT, async () => {
     try {
       let rxData = [];
       await rfm.waitInterfaceFree();
-      const pipe = await rfm.receive(rxData);
-      if (pipe) {
-        const packData = dhtData.processDHTpack(pipe, rfm.rssi, rxData);
-        let ackPack = updatePipeState(pipe, packData);
+      const pipeNum = await rfm.receive(rxData);
+      if (pipeNum) {
+        const packData = dhtData.processDHTpack(pipeNum, rfm.rssi, rxData);
+        let ackPack = updatePipeState(pipeNum, packData);
         if (!ackPack) {
           ackPack = getPipeAckData(pipeNum, packData);
         }
         if (ackPack == null) {
           return;
         }
-        await sendACK(pipe, ackPack);
+        await sendACK(pipeNum, ackPack);
       }
     } catch (error) {
       console.error('Error on receive:', error);
@@ -167,4 +150,10 @@ function getPipeAckData(pipe, packData) {
   }
   // Simple ACK
   return dhtData.ackPack();
+}
+
+try {
+	station();
+} catch(err) {
+	console.error('RFM read error:', err);
 }
