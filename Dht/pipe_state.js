@@ -8,12 +8,13 @@ class PipeState extends EventEmitter {
     this.subnet = addr.subnet;
     this.UID = UID;
     this.settings = settings || {};
-    this.tasks = [
-      {
+    this.tasks = [];
+    if (settings.reqState) {
+      this.tasks.push({
         task: 'checkMode',
         mode: this.settings.beamMode || false
-      }
-    ];
+      });
+    }
   }
 
   update(pack) {
@@ -24,12 +25,19 @@ class PipeState extends EventEmitter {
       case 2:
         this.dht = pack;
         break;
+      case 3:
+        this.UID = pack.UID;
+        this.version = {
+          major: pack.major,
+          minor: pack.minor
+        }
+        break;
       case 4:
         this.ext1 = pack;
         break;
       case 5:
-        console.info('Got settings', this.pipeNum, pack);
         this.completeTask('checkMode');
+        this.state = pack.state;
         break;
     }
   }
@@ -42,7 +50,11 @@ class PipeState extends EventEmitter {
   }
 
   completeTask(task) {
-    
+    const index = this.tasks.findIndex(i => i.task === task);
+    if (index < 0) {
+      return;
+    }
+    this.tasks.splice(index, 1);
   }
 }
 

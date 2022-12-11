@@ -48,7 +48,7 @@ const RFM_DATA_EVENT = 'haveData';
 const pipeNumbers = {
   2228287: { pipeNum: 4, subnet: SUB_NET, beamMode: true },
   2228289: { pipeNum: 1, subnet: SUB_NET, beamMode: true },
-  2883623: { pipeNum: 5, subnet: SUB_NET },
+  2883623: { pipeNum: 5, subnet: SUB_NET, reqState: true },
   4587579: { pipeNum: 2, subnet: SUB_NET, beamMode: true },
   4587581: { pipeNum: 3, subnet: SUB_NET, beamMode: true },
 };
@@ -63,13 +63,17 @@ function resetPipeState(pipeUID) {
     addr = pipeNumbers[pipeUID] = { pipeNum, subnet: SUB_NET, beamMode: true };
   }
 
-  pipesStat[addr.pipeNum] = new PipeState(addr, pipeUID, { beamMode: addr.beamMode });
+  pipesStat[addr.pipeNum] = new PipeState(addr, pipeUID, { beamMode: addr.beamMode, reqState: addr.reqState });
   return addr;
 }
 
 function updatePipeState(pipeNum, packs) {
   const curPack = packs[0];
+  // TODO: check for instant 255 pack exchange
   if (pipeNum == NEW_PIPE_ADDR) {
+    if (!curPack.UID) {
+      return dhtData.reqUIDPack();
+    }
     const pipeAddr = resetPipeState(curPack.UID);
     if (pipeAddr) {
       return dhtData.setAddressPack(pipeAddr.pipeNum, pipeAddr.subnet, curPack.UID);
@@ -79,7 +83,7 @@ function updatePipeState(pipeNum, packs) {
   const pipeState = pipesStat[pipeNum];
   // Pipe knows it's number but station doesn't so it was restarted
   if (!pipeState) {
-    if (curPack.pack_type == 1) {
+    if (curPack.UID) {
       const pipeAddr = resetPipeState(curPack.UID);
       if (pipeAddr) {
         return dhtData.setAddressPack(pipeAddr.pipeNum, pipeAddr.subnet, curPack.UID);
@@ -92,7 +96,7 @@ function updatePipeState(pipeNum, packs) {
   pipeState.update(curPack);
   const task = pipeState.getTask();
   if (task) {
-    switch (task) {
+    switch (task.task) {
       case 'checkMode':
         return dhtData.reqSettingsPack();
     }

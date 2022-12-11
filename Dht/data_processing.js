@@ -75,6 +75,10 @@ function dataProcess(type, mul, div) {
     }
 }
 function probeState(buffer, indexContainer) {
+    const encData = UINT_16(buffer, indexContainer);
+    return decodeStruct(encData, settingsFlag);
+}
+function probeErrors(buffer, indexContainer) {
     let stateDate = UINT_32(buffer, indexContainer);
     const res = {};
     ErrorFlags.forEach(flag => {
@@ -104,11 +108,16 @@ const DHTStruct = {
 const UIDStruct = {
     UID: UINT_32,
 }
+const UID_ExtStruct = {
+    UID: UINT_32,
+    major: UINT_8,
+    minor: UINT_8,
+}
 const ACKStruct = {
     taskNum: UINT_8
 }
-const StateStruct = {
-    state: probeState,
+const ErrorsStruct = {
+    errors: probeErrors,
 }
 const Ext1Struct = {
     packSize: UINT_8,
@@ -120,17 +129,36 @@ const Ext1Struct = {
 const RunStateStruct = {
     packSize: UINT_8,
     dataTypes: UINT_16,
-    state: UINT_32
+    state: probeState
 }
 
 const TYPES_MAP = {
     1: UIDStruct,
     2: DHTStruct,
-    3: UIDStruct,
+    3: UID_ExtStruct,
     4: Ext1Struct,
     5: RunStateStruct,
-    10: StateStruct,
+    10: ErrorsStruct,
     20: ACKStruct
+}
+
+const settingsFlag = [
+    'PROBE_V_BAT',
+    'PROBE_V_REF',
+    'PROBE_CORE_TEMP',
+    'PROBE_DHT_TEMP',
+    'PROBE_DHT_HUM',
+    'PROBE_EXT1_V',
+    'PROBE_EXT2_OUT'
+];
+
+function decodeStruct(encData, flags) {
+    const res = {};
+    flags.forEach(key => {
+        res[key] = Boolean(encData & 1);
+        encData = encData >> 1;
+    })
+    return res;
 }
 
 function getBody(buffer, result, dataType, indexContainer) {
@@ -146,6 +174,7 @@ function getData(buffer, indexContainer) {
     const startIndex = indexContainer.index;
     getBody(buffer, data, HEADStruct, indexContainer);
     const packHandler = TYPES_MAP[data.pack_type];
+    // console.info('HANDLER:', data.pack_type)
     if (packHandler) {
         getBody(buffer, data, packHandler, indexContainer);
     }
@@ -170,7 +199,7 @@ function getPackTitle(packData) {
             result = `${result} | BAT: ${packData.bat_v.toFixed(1)} | CORE: ${pipePad(packData.core_t, 2)} | TEMP: ${packData.temp.toFixed(1)} | HUM: ${packData.hum.toFixed(1)}`;
             break;
         case 3:
-            result = `${result} | UID: ${packData.UID}`;
+            result = `${result} | UID: ${packData.UID} | Version: ${packData.major}.${packData.minor}`;
             break;
         case 4:
             result = `${result} | BAT: ${packData.bat_v.toFixed(1)} | SIZE: ${packData.packSize} | TYPES: ${packData.dataTypes} | CORE: ${pipePad(packData.core_t, 2)} | EXT1: ${(packData.ext1_v*EXT1_V_k).toFixed(2)}`;
@@ -192,8 +221,8 @@ function setAddressPack(address, subnet, core_UID) {
 }
 
 function reqUIDPack() {
-    // return [2, 0, 0, 0, 0, 0, 0, 0];
-    return [2, 0];
+    // Req extended UID
+    return [2, 0, 0, 0, 1, 0, 0, 0];
 }
 
 function reqSettingsPack() {
@@ -204,41 +233,43 @@ function ackPack() {
     return [20, 0];
 }
 
-module.exports = {
-    processDHTpack: (pipe, rssi, dataArray) => {
-        let comData = [];
-        const buffer = Buffer.from(dataArray);
-        const bufferStep = { index: 0 };
-// if (pipe == 5 && (buffer[0] == 14 || buffer[0] == 20)) {
-//     console.info("Pipe data: ", buffer);
-// }
-        while (bufferStep.index < buffer.length) {
-            const packData = getData(buffer, bufferStep);
-            packData.pipe = pipe;
-            packData.rssi = rssi;
-            console.log(getPackTitle(packData), '');
-            comData.push(packData);
+function processDHTpack(pipe, rssi, dataArray) {
+    let comData = [];
+    const buffer = Buffer.from(dataArray);
+    const bufferStep = { index: 0 };
+
+    while (bufferStep.index < buffer.length) {
+        const packData = getData(buffer, bufferStep);
+        packData.pipe = pipe;
+        packData.rssi = rssi;
+        console.log(getPackTitle(packData), '');
+        comData.push(packData);
+    }
+    return comData;
+}
+
+function getPipeAckData(pipe, packData) {
+    if (packData.pack_type == 1) {
+        const pipeNum = pipeNumbers[packData.UID];
+        if (pipeNum) {
+            return setAddressPack(pipeNum.addr, pipeNum.subnet, packData.UID);
         }
-        return comData;
-    },
+    // If pipe sent 20 - ACK
+    // } else if (packData.pack_type == 20 || packData.pack_type == 21) {
+    //     return null;
+    } else if (pipe == 255) {
+        return reqUIDPack();
+    }
+    // Simple ACK
+    return [20, 0];
+}
+
+module.exports = {
+    processDHTpack,
     setAddressPack,
     reqUIDPack,
 	reqSettingsPack,
     ackPack,
     // Obsolete
-    getPipeAckData: (pipe, packData) => {
-        if (packData.pack_type == 1) {
-            const pipeNum = pipeNumbers[packData.UID];
-            if (pipeNum) {
-                return setAddressPack(pipeNum.addr, pipeNum.subnet, packData.UID);
-            }
-        // If pipe sent 20 - ACK
-        // } else if (packData.pack_type == 20 || packData.pack_type == 21) {
-        //     return null;
-        } else if (pipe == 255) {
-            return reqUIDPack();
-        }
-        // Simple ACK
-        return [20, 0];
-    }
+    getPipeAckData
 }
