@@ -45,60 +45,70 @@ const rfm = new Rfm69Connector(SPI_NUM, DEVICE_NUM);
 
 const RFM_DATA_EVENT = 'haveData';
 
-const pipeNumbers = {
-  2228287: { pipeNum: 4, subnet: SUB_NET, beamMode: true },
-  2228289: { pipeNum: 1, subnet: SUB_NET, beamMode: true },
-  2883623: { pipeNum: 5, subnet: SUB_NET, reqState: true },
-  4587579: { pipeNum: 2, subnet: SUB_NET, beamMode: true },
-  4587581: { pipeNum: 3, subnet: SUB_NET, beamMode: true },
+const pipesSetup = {
+  2228287: { pipeNum: 4, subnet: SUB_NET, beamMode: false, measures: { PROBE_EXT1_V: true } },
+  2228289: { pipeNum: 1, subnet: SUB_NET, beamMode: true, measures: { PROBE_DHT_HUM: true, PROBE_DHT_TEMP: true } },
+  2883623: { pipeNum: 5, subnet: SUB_NET, beamMode: false, measures: { PROBE_EXT1_V: true } },
+  4587579: { pipeNum: 2, subnet: SUB_NET, beamMode: true, measures: { PROBE_DHT_HUM: true, PROBE_DHT_TEMP: true } },
+  4587581: { pipeNum: 3, subnet: SUB_NET, beamMode: true, measures: { PROBE_DHT_HUM: true, PROBE_DHT_TEMP: true } },
 };
 
 const pipesStat = {};
 
-function resetPipeState(pipeUID) {
-  let addr = pipeNumbers[pipeUID];
+function resetPipeState(curPack) {
+  const pipeUID = curPack.UID;
+  if (!pipeUID) {
+    return;
+  }
+  let addr = pipesSetup[pipeUID];
   if (!addr) {
-    pipeNum = Math.max(...Object.keys(pipeNumbers).map(pA => pA.pipeNum)) || 0;
+    pipeNum = Math.max(...Object.keys(pipesSetup).map(pA => pA.pipeNum)) || 0;
     pipeNum++;
-    addr = pipeNumbers[pipeUID] = { pipeNum, subnet: SUB_NET, beamMode: true };
+    addr = pipesSetup[pipeUID] = { pipeNum, subnet: SUB_NET, beamMode: true };
   }
 
-  pipesStat[addr.pipeNum] = new PipeState(addr, pipeUID, { beamMode: addr.beamMode, reqState: addr.reqState });
+  const curPipe = new PipeState(addr, pipeUID, addr);
+  pipesStat[addr.pipeNum] = curPipe;
+  curPipe.update(curPack);
   return addr;
 }
 
-function updatePipeState(pipeNum, packs) {
+async function updatePipeState(pipeNum, packs) {
   const curPack = packs[0];
   // TODO: check for instant 255 pack exchange
   if (pipeNum == NEW_PIPE_ADDR) {
     if (!curPack.UID) {
       return dhtData.reqUIDPack();
     }
-    const pipeAddr = resetPipeState(curPack.UID);
+    const pipeAddr = resetPipeState(curPack);
     if (pipeAddr) {
       return dhtData.setAddressPack(pipeAddr.pipeNum, pipeAddr.subnet, curPack.UID);
     }
+    console.error('Unknown pipe instance 1.');
     return;
   }
   const pipeState = pipesStat[pipeNum];
   // Pipe knows it's number but station doesn't so it was restarted
   if (!pipeState) {
     if (curPack.UID) {
-      const pipeAddr = resetPipeState(curPack.UID);
+      const pipeAddr = resetPipeState(curPack);
       if (pipeAddr) {
         return dhtData.setAddressPack(pipeAddr.pipeNum, pipeAddr.subnet, curPack.UID);
       }
+      console.error('Unknown pipe instance 2.');
       return;
     } else {
       return dhtData.reqUIDPack();
     }
   }
-  pipeState.update(curPack);
+  await pipeState.update(curPack);
   const task = pipeState.getTask();
   if (task) {
     switch (task.task) {
       case 'checkMode':
         return dhtData.reqSettingsPack();
+      case 'setMode':
+        return dhtData.setSettingsPack(task.data);
     }
   }
 }
@@ -112,7 +122,7 @@ async function dataHandler() {
     if (pipeNum)
     {
       const packData = dhtData.processDHTpack(pipeNum, rfm.rssi, rxData);
-      let ackPack = updatePipeState(pipeNum, packData);
+      let ackPack = await updatePipeState(pipeNum, packData);
       if (!ackPack)
       {
         ackPack = dhtData.ackPack();

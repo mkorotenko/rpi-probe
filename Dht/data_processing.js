@@ -90,6 +90,21 @@ function probeErrors(buffer, indexContainer) {
     res.count = stateDate;
     return res;
 }
+function probeCustomPack(buffer, indexContainer) {
+    const res = {};
+    const shift = indexContainer.index;
+    const packSize = UINT_8(buffer, indexContainer);
+    res.packSize = packSize;
+    let dataTypes = UINT_16(buffer, indexContainer);
+    res.dataTypes = dataTypes;
+    settingsFlag.forEach(key => {
+        if (dataTypes & 1) {
+            res[key] = flagsProcessing[key](buffer, indexContainer);
+        }
+        dataTypes = dataTypes >> 1;
+    });
+    return res;
+}
 
 const HEADStruct = {
     // pipe: UINT_8,
@@ -120,11 +135,12 @@ const ErrorsStruct = {
     errors: probeErrors,
 }
 const Ext1Struct = {
-    packSize: UINT_8,
-    dataTypes: UINT_16,
-    bat_v: dataProcess(UINT_16, undefined, 10),
-    core_t: UINT_16,
-    ext1_v: UINT_16,
+    data: probeCustomPack
+    // packSize: UINT_8,
+    // dataTypes: UINT_16,
+    // bat_v: dataProcess(UINT_16, undefined, 10),
+    // core_t: UINT_16,
+    // ext1_v: UINT_16,
 }
 const RunStateStruct = {
     packSize: UINT_8,
@@ -149,14 +165,37 @@ const settingsFlag = [
     'PROBE_DHT_TEMP',
     'PROBE_DHT_HUM',
     'PROBE_EXT1_V',
-    'PROBE_EXT2_OUT'
+    'PROBE_EXT2_OUT',
+    'PROBE_BEAM_MODE'
 ];
+
+const flagsProcessing = {
+    PROBE_V_BAT: dataProcess(UINT_16, undefined, 10),
+    PROBE_V_REF: UINT_16,
+    PROBE_CORE_TEMP: UINT_16,
+    PROBE_DHT_TEMP: dataProcess(INT_16, undefined, 10),
+    PROBE_DHT_HUM: dataProcess(UINT_16, undefined, 10),
+    PROBE_EXT1_V: UINT_16,
+    PROBE_EXT2_OUT: UINT_8,
+    PROBE_BEAM_MODE: UINT_8
+}
 
 function decodeStruct(encData, flags) {
     const res = {};
     flags.forEach(key => {
         res[key] = Boolean(encData & 1);
         encData = encData >> 1;
+    })
+    return res;
+}
+
+function encodeStruct(data, flags) {
+    let res = 0;
+    flags.slice().reverse().forEach(key => {
+        res = res << 1;
+        if (data[key]) {
+            res |= 1;
+        }
     })
     return res;
 }
@@ -202,7 +241,7 @@ function getPackTitle(packData) {
             result = `${result} | UID: ${packData.UID} | Version: ${packData.major}.${packData.minor}`;
             break;
         case 4:
-            result = `${result} | BAT: ${packData.bat_v.toFixed(1)} | SIZE: ${packData.packSize} | TYPES: ${packData.dataTypes} | CORE: ${pipePad(packData.core_t, 2)} | EXT1: ${(packData.ext1_v*EXT1_V_k).toFixed(2)}`;
+            result = `${result} | BAT: ${packData.data.PROBE_V_BAT.toFixed(1)} | SIZE: ${packData.data.packSize} | TYPES: ${packData.data.dataTypes} | CORE: ${pipePad(packData.data.PROBE_CORE_TEMP, 2)} | EXT1: ${((packData.data.PROBE_EXT1_V || 0)*EXT1_V_k).toFixed(2)}`;
             break;
         case 5:
             result = `${result} | SIZE: ${packData.packSize} | TYPES: ${packData.dataTypes} | STATE: ${packData.state}`;
@@ -223,6 +262,11 @@ function setAddressPack(address, subnet, core_UID) {
 function reqUIDPack() {
     // Req extended UID
     return [2, 0, 0, 0, 1, 0, 0, 0];
+}
+
+function setSettingsPack(setStruct) {
+    const settings = encodeStruct(setStruct, settingsFlag);
+    return [12, 0, 0, 0, settings, 0, 0, 0];
 }
 
 function reqSettingsPack() {
@@ -268,6 +312,7 @@ module.exports = {
     processDHTpack,
     setAddressPack,
     reqUIDPack,
+    setSettingsPack,
 	reqSettingsPack,
     ackPack,
     // Obsolete
